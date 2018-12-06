@@ -1,0 +1,63 @@
+buildscript {
+    ext {
+        springBootVersion = '2.0.0.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath('gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0')
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+plugins {
+    id 'net.saliman.cobertura' version '2.5.4'
+}
+
+task checkstyle(type: Exec) {
+    workingDir "$rootProject.projectDir/"
+    commandLine 'java', '-jar', "${project.projectDir}/checkstyle-8.9-all.jar", '-c', "${project.projectDir}/checkstyle.xml", '-o', "${project.projectDir}/checkstyle-result.xml", '-f', 'xml', "${project.projectDir}/src"
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.palantir.docker'
+
+group = 'com.xgh'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile('org.springframework.boot:spring-boot-starter-jdbc')
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile('org.springframework.boot:spring-boot-starter-data-jpa')
+    compile('org.liquibase:liquibase-core')
+    compile('org.yaml:snakeyaml')
+    compile('org.springframework.boot:spring-boot-devtools')
+    compile('biz.paluch.logging:logstash-gelf:1.11.2')
+    compile('org.reflections:reflections:0.9.11')
+    compile('com.fasterxml.jackson.datatype:jackson-datatype-jsr310')
+    compile('javax.mail:mail:1.4.5')
+    runtime('org.postgresql:postgresql')
+    runtime('com.h2database:h2')
+    testCompile('junit:junit')
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+}
+
+cobertura {
+    coverageFormats = ['xml']
+}
+
+docker {
+    dependsOn build
+    name "${project.group}/${bootJar.baseName}"
+    files bootJar.archivePath
+    buildArgs(['JAR_FILE': "${bootJar.archiveName}"])
+}
